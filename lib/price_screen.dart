@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'dart:io' show Platform;
 
+import 'bitcoin_api.dart';
 import 'coin_data.dart';
 
 class PriceScreen extends StatefulWidget {
@@ -11,6 +12,7 @@ class PriceScreen extends StatefulWidget {
 
 class _PriceScreenState extends State<PriceScreen> {
   String selectedCurrency = 'USD';
+  double currencyValue = 0.0;
 
   //For Andriod view
   DropdownButton<String> andriodDropDown() {
@@ -25,8 +27,10 @@ class _PriceScreenState extends State<PriceScreen> {
     return DropdownButton<String>(
       value: selectedCurrency,
       items: currencyList,
-      onChanged: (value) {
+      onChanged: (value) async {
+        var response = await updateTicker(selectedCurrency);
         setState(() {
+          currencyValue = response['high'];
           selectedCurrency = value;
         });
       },
@@ -43,8 +47,35 @@ class _PriceScreenState extends State<PriceScreen> {
     return CupertinoPicker(
         backgroundColor: Colors.lightBlue,
         itemExtent: 32.0,
-        onSelectedItemChanged: null,
+        onSelectedItemChanged: (value) async {
+          var response = await updateTicker(currencyList[value].data);
+          setState(() {
+            currencyValue = response['high'];
+            selectedCurrency = currencyList[value].data;
+          });
+        },
         children: currencyList);
+  }
+
+  Future updateTicker(String currencyType) async {
+    BitcoinApi bitcoinApi = BitcoinApi(currencyType);
+    var response = await bitcoinApi.getCurrencyValue();
+    return response;
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    setInitialState();
+  }
+
+  @override
+  void setInitialState() async {
+    var response = await updateTicker(selectedCurrency);
+    setState(() {
+      currencyValue = response['high'];
+    });
   }
 
   @override
@@ -68,7 +99,28 @@ class _PriceScreenState extends State<PriceScreen> {
               child: Padding(
                 padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 28.0),
                 child: Text(
-                  '1 BTC = ? USD',
+                  '1 BTC = ? $currencyValue $selectedCurrency',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 20.0,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(18.0, 18.0, 18.0, 0),
+            child: Card(
+              color: Colors.lightBlueAccent,
+              elevation: 5.0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10.0),
+              ),
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 28.0),
+                child: Text(
+                  '1 BTC = ? $currencyValue $selectedCurrency',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 20.0,
